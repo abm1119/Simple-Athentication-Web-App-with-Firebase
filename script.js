@@ -10,12 +10,12 @@ import { signOut } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-auth
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBl_IERhv2sV9Ls85LuLW4vOa15tEQIw0c",
-  authDomain: "sample-login-app-edc6f.firebaseapp.com",
-  projectId: "sample-login-app-edc6f",
-  storageBucket: "sample-login-app-edc6f.firebasestorage.app",
-  messagingSenderId: "355487716373",
-  appId: "1:355487716373:web:0856e0937cf55a88332a1c"
+  apiKey: "your_api key of firebase here",
+  authDomain: "firebase_auth_domain",
+  projectId: "project_id_here",
+  storageBucket: "storage_bucket",
+  messagingSenderId: "------------",
+  appId: "________  your_app_id_____"
 };
 
 // Get the modal and its elements
