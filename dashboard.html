@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#4F46E5',
+            secondary: '#6B7280',
+          },
+        },
+      },
+    };
+  </script>
+   <style>
+    /* Modal Styles */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgba(0, 0, 0, 0.5); /* Black with opacity */
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto; /* 15% from the top and centered */
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%; /* Could be more or less, depending on screen size */
+  max-width: 400px;
+  border-radius: 10px;
+  text-align: center;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: #000;
+}
+.error-message {
+  color: red;
+  margin-top: 10px;
+}
+ </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+  
+<!-- Modal for success messages -->
+<div id="successModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <p id="modalMessage"></p>
+  </div>
+</div>
+
+  <!-- Navbar -->
+  <nav class="bg-primary text-white p-4 flex justify-between items-center">
+    <h1 class="text-lg font-semibold">Admin Panel</h1>
+    <button id="logoutButton" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md">
+      Logout
+    </button>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="flex-grow p-6">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      <!-- Passengers Management -->
+      <div class="bg-white shadow-md rounded-lg p-6">
+        <h3 class="text-lg font-bold text-primary mb-2">Passengers Management</h3>
+        <p class="text-secondary">View, block, or delete passengers.</p>
+        <button id="managePassengersButton" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 mt-4 rounded-md">
+          Manage Passengers
+        </button>
+      </div>
+
+      <!-- Drivers Management -->
+      <div class="bg-white shadow-md rounded-lg p-6">
+        <h3 class="text-lg font-bold text-primary mb-2">Drivers Management</h3>
+        <p class="text-secondary">View, block, or delete drivers.</p>
+        <button id="manageDriversButton" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 mt-4 rounded-md">
+          Manage Drivers
+        </button>
+      </div>
+
+      <!-- Complaints Management -->
+      <div class="bg-white shadow-md rounded-lg p-6">
+        <h3 class="text-lg font-bold text-primary mb-2">Complaints Management</h3>
+        <p class="text-secondary">View and respond to user complaints.</p>
+        <button id="viewComplaintsButton" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 mt-4 rounded-md">
+          View Complaints
+        </button>
+      </div>
+
+      <!-- Live Location -->
+      <div class="bg-white shadow-md rounded-lg p-6">
+        <h3 class="text-lg font-bold text-primary mb-2">Live Ride Locations</h3>
+        <p class="text-secondary">Track live locations of rides.</p>
+        <button id="viewLiveLocationButton" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 mt-4 rounded-md">
+          View Live Locations
+        </button>
+      </div>
+
+      <!-- Ride History -->
+      <div class="bg-white shadow-md rounded-lg p-6">
+        <h3 class="text-lg font-bold text-primary mb-2">Ride Booking History</h3>
+        <p class="text-secondary">View details of completed rides.</p>
+        <button id="viewRideHistoryButton" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 mt-4 rounded-md">
+          View Ride History
+        </button>
+      </div>
+    </div>
+
+    <!-- Dynamic Content Section -->
+    <div id="dynamicContent" class="mt-6"></div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-primary text-white text-center p-4">
+    <p>© 2025 Your Company. All rights reserved.</p>
+  </footer>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
+    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-auth.js";
+    import { getDatabase, ref, get, child, update, remove } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
+
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBl_IERhv2sV9Ls85LuLW4vOa15tEQIw0c",
+      authDomain: "sample-login-app-edc6f.firebaseapp.com",
+      projectId: "sample-login-app-edc6f",
+      storageBucket: "sample-login-app-edc6f.firebasestorage.app",
+      messagingSenderId: "355487716373",
+      appId: "1:355487716373:web:0856e0937cf55a88332a1c"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    // Logout functionality
+    document.getElementById("logoutButton").addEventListener("click", async () => {
+      try {
+        await signOut(auth);
+        alert("Logged out successfully!");
+        window.location.href = "login.html";
+      } catch (error) {
+        alert("Error logging out: " + error.message);
+      }
+    });
+
+    // Manage Passengers
+    document.getElementById("managePassengersButton").addEventListener("click", async () => {
+      const dynamicContent = document.getElementById("dynamicContent");
+      dynamicContent.innerHTML = "<p>Loading passengers...</p>";
+
+      try {
+        const snapshot = await get(child(ref(db), "passengers"));
+        if (snapshot.exists()) {
+          const passengers = snapshot.val();
+          let html = "<h3 class='text-lg font-bold text-primary mb-4'>Passengers</h3><ul class='list-disc pl-5'>";
+          for (const [id, passenger] of Object.entries(passengers)) {
+            html += `<li>${passenger.name} (${passenger.email}) - <button class='bg-red-500 text-white px-2 py-1 rounded' onclick='blockUser("passengers", "${id}")'>Block</button> <button class='bg-red-700 text-white px-2 py-1 rounded' onclick='deleteUser("passengers", "${id}")'>Delete</button></li>`;
+          }
+          html += "</ul>";
+          dynamicContent.innerHTML = html;
+        } else {
+          dynamicContent.innerHTML = "<p>No passengers found.</p>";
+        }
+      } catch (error) {
+        dynamicContent.innerHTML = `<p>Error loading passengers: ${error.message}</p>`;
+      }
+    });
+
+    // Manage Drivers
+    document.getElementById("manageDriversButton").addEventListener("click", async () => {
+      const dynamicContent = document.getElementById("dynamicContent");
+      dynamicContent.innerHTML = "<p>Loading drivers...</p>";
+
+      try {
+        const snapshot = await get(child(ref(db), "drivers"));
+        if (snapshot.exists()) {
+          const drivers = snapshot.val();
+          let html = "<h3 class='text-lg font-bold text-primary mb-4'>Drivers</h3><ul class='list-disc pl-5'>";
+          for (const [id, driver] of Object.entries(drivers)) {
+            html += `<li>${driver.name} (${driver.email}) - <button class='bg-red-500 text-white px-2 py-1 rounded' onclick='blockUser("drivers", "${id}")'>Block</button> <button class='bg-red-700 text-white px-2 py-1 rounded' onclick='deleteUser("drivers", "${id}")'>Delete</button></li>`;
+          }
+          html += "</ul>";
+          dynamicContent.innerHTML = html;
+        } else {
+          dynamicContent.innerHTML = "<p>No drivers found.</p>";
+        }
+      } catch (error) {
+        dynamicContent.innerHTML = `<p>Error loading drivers: ${error.message}</p>`;
+      }
+    });
+
+    // Utility Functions
+    window.blockUser = async (type, id) => {
+      try {
+        await update(ref(db, `${type}/${id}`), { status: "blocked" });
+        alert("User blocked successfully.");
+      } catch (error) {
+        alert("Error blocking user: " + error.message);
+      }
+    };
+
+    window.deleteUser = async (type, id) => {
+      try {
+        await remove(ref(db, `${type}/${id}`));
+        alert("User deleted successfully.");
+      } catch (error) {
+        alert("Error deleting user: " + error.message);
+      }
+    };
+
+    // View Complaints
+    document.getElementById("viewComplaintsButton").addEventListener("click", async () => {
+      const dynamicContent = document.getElementById("dynamicContent");
+      dynamicContent.innerHTML = "<p>Loading complaints...</p>";
+
+      try {
+        const snapshot = await get(child(ref(db), "complaints"));
+        if (snapshot.exists()) {
+          const complaints = snapshot.val();
+          let html = "<h3 class='text-lg font-bold text-primary mb-4'>User Complaints</h3><ul class='list-disc pl-5'>";
+          for (const [id, complaint] of Object.entries(complaints)) {
+            html += `<li>${complaint.message} (From: ${complaint.email}) - <button class='bg-blue-500 text-white px-2 py-1 rounded' onclick='respondComplaint("${complaint.email}")'>Respond</button></li>`;
+          }
+          html += "</ul>";
+          dynamicContent.innerHTML = html;
+        } else {
+          dynamicContent.innerHTML = "<p>No complaints found.</p>";
+        }
+      } catch (error) {
+        dynamicContent.innerHTML = `<p>Error loading complaints: ${error.message}</p>`;
+      }
+    });
+
+    window.respondComplaint = (email) => {
+      alert(`Open email client to respond to: ${email}`);
+    };
+
+    // Live Locations
+    document.getElementById("viewLiveLocationButton").addEventListener("click", async () => {
+      const dynamicContent = document.getElementById("dynamicContent");
+      dynamicContent.innerHTML = "<p>Loading live locations...</p>";
+      // Fetch live location logic (example placeholder)
+      dynamicContent.innerHTML = "<p>Live location tracking coming soon!</p>";
+    });
+
+    // Ride History
+    document.getElementById("viewRideHistoryButton").addEventListener("click", async () => {
+      const dynamicContent = document.getElementById("dynamicContent");
+      dynamicContent.innerHTML = "<p>Loading ride history...</p>";
+      try {
+        const snapshot = await get(child(ref(db), "rideHistory"));
+        if (snapshot.exists()) {
+          const rides = snapshot.val();
+          let html = "<h3 class='text-lg font-bold text-primary mb-4'>Ride History</h3><ul class='list-disc pl-5'>";
+          for (const [id, ride] of Object.entries(rides)) {
+            html += `<li>Ride ID: ${id}, Driver: ${ride.driver}, Passenger: ${ride.passenger}, Status: ${ride.status}</li>`;
+          }
+          html += "</ul>";
+          dynamicContent.innerHTML = html;
+        } else {
+          dynamicContent.innerHTML = "<p>No ride history found.</p>";
+        }
+      } catch (error) {
+        dynamicContent.innerHTML = `<p>Error loading ride history: ${error.message}</p>`;
+      }
+    });
+  </script>
+</body>
+</html>
